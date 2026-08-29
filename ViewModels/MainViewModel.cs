@@ -431,8 +431,13 @@ public partial class MainViewModel : ObservableObject
 
         Axis MakeTimeAxis() => new()
         {
-            Labeler = value => new DateTime((long)value).ToString(longRange ? "yyyy/MM/dd" : "MM/dd HH:mm"),
-            LabelsRotation = 15,
+            // 斜め表示を避けるため、日付と時刻を2段に分けて表示する
+            Labeler = value =>
+            {
+                var dt = new DateTime((long)value);
+                return longRange ? $"{dt:yyyy}\n{dt:MM/dd}" : $"{dt:MM/dd}\n{dt:HH:mm}";
+            },
+            LabelsRotation = 0,
             // データの有無に関わらず、選択したレンジの幅で表示範囲を固定する。
             // 罫線は0時0分を起点としたキリの良い時刻に揃える
             MinLimit = axisFrom,

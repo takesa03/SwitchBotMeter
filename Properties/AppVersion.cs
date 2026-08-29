@@ -1,1 +1,1 @@
-namespace SwitchBotMeter; internal static class AppVersion { public const string Version = "1.0.0.12"; }
+namespace SwitchBotMeter; internal static class AppVersion { public const string Version = "1.0.0.17"; }
