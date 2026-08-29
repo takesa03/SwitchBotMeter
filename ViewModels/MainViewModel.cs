@@ -103,6 +103,9 @@ public partial class MainViewModel : ObservableObject
     private readonly DispatcherTimer graphRefreshTimer;
     private bool graphNeedsRefresh;
 
+    [ObservableProperty]
+    private bool isGraphPaused;
+
     public MainViewModel()
     {
         bluetoothManager.AdvertisementReceived += OnAdvertisementReceived;
@@ -112,12 +115,16 @@ public partial class MainViewModel : ObservableObject
         outputFilePath = monitorSettings.OutputFilePath;
         monitoredDeviceAddress = monitorSettings.MonitoredDeviceAddress;
 
+        // スキャン開始前（起動直後）でも過去データを表示できるよう、
+        // 履歴ファイルが残っている既知デバイスを先に復元しておく
+        LoadKnownDevicesFromHistory();
+
         // BLEアドバタイズ受信時のDispatcher.Invoke(Normal優先度)が頻発すると、
         // 既定のBackground優先度のタイマーは後回しにされ続けてしまうため、Normal優先度で動かす
         graphRefreshTimer = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(2) };
         graphRefreshTimer.Tick += (_, _) =>
         {
-            if (graphNeedsRefresh)
+            if (graphNeedsRefresh && !IsGraphPaused)
             {
                 graphNeedsRefresh = false;
                 RefreshGraphSeries();
@@ -126,7 +133,58 @@ public partial class MainViewModel : ObservableObject
         graphRefreshTimer.Start();
     }
 
+    // 履歴ファイルが存在する既知デバイスをデバイス一覧に復元する（DeviceTypeはまだ不明のため空文字。
+    // 実際にBLEで再検出された時点でOnAdvertisementReceived側が正しい値に更新する）
+    private void LoadKnownDevicesFromHistory()
+    {
+        foreach (var address in historyStore.GetKnownAddresses())
+        {
+            if (Devices.Any(d => d.BluetoothAddress == address)) continue;
+
+            var history = historyStore.Load(address, "");
+            if (history.Count == 0) continue;
+
+            var last = history[^1];
+            var paletteIndex = colorStore.GetPaletteIndex(address) ?? nextPaletteIndex++;
+
+            var device = new Device
+            {
+                BluetoothAddress = address,
+                DeviceType = "",
+                Alias = aliasStore.GetAlias(address) ?? "",
+                IsMonitored = MonitoredDeviceAddress == address,
+                ShowOnGraph = true,
+                PaletteIndex = paletteIndex,
+                GraphColorBrush = new SolidColorBrush(DevicePalette[paletteIndex % DevicePalette.Length].Wpf),
+                FirstSeen = history[0].Timestamp,
+                LastSeen = last.Timestamp,
+                LastTemperature = last.Temperature,
+                LastHumidity = last.Humidity
+            };
+
+            foreach (var record in history)
+            {
+                device.History.Add(record);
+            }
+
+            Devices.Add(device);
+        }
+
+        RefreshMonitoredDeviceName();
+    }
+
     partial void OnSelectedTimeRangeChanged(GraphTimeRange value) => RefreshGraphSeries();
+
+    // 一時停止中は表示をそのまま維持し、記録自体は継続する。
+    // 再開時に最新状態へ一気に更新する
+    partial void OnIsGraphPausedChanged(bool value)
+    {
+        if (!value)
+        {
+            graphNeedsRefresh = false;
+            RefreshGraphSeries();
+        }
+    }
 
     public void RefreshGraphSeries()
     {
@@ -210,8 +268,19 @@ public partial class MainViewModel : ObservableObject
 
         foreach (var device in Devices.Where(d => d.ShowOnGraph))
         {
-            var points = device.History.Where(r => r.Timestamp >= from).OrderBy(r => r.Timestamp).ToList();
-            if (points.Count == 0) continue;
+            var inRange = device.History.Where(r => r.Timestamp >= from).OrderBy(r => r.Timestamp).ToList();
+            if (inRange.Count == 0) continue;
+
+            // 表示範囲開始直前の最後の値を「引き継ぎ点」として先頭に加える。
+            // これが無いと、範囲内に最初のデータが来るまで線が描かれず、
+            // データ自体は存在するのに空白に見えてしまう
+            var priorPoint = device.History
+                .Where(r => r.Timestamp < from)
+                .OrderByDescending(r => r.Timestamp)
+                .FirstOrDefault();
+            var points = priorPoint != null
+                ? new List<TemperatureHumidityRecord> { priorPoint }.Concat(inRange).ToList()
+                : inRange;
 
             var color = DevicePalette[device.PaletteIndex % DevicePalette.Length].Sk;
 
@@ -248,9 +317,11 @@ public partial class MainViewModel : ObservableObject
         var longRange = SelectedTimeRange is GraphTimeRange.OneDay or GraphTimeRange.OneWeek
             or GraphTimeRange.OneMonth or GraphTimeRange.SixMonths or GraphTimeRange.OneYear;
 
+        // 罫線位置は綺麗な時刻に揃えるが、表示範囲自体は常に選択レンジ通り「現在時刻」まで伸ばす
+        // （罫線の位置に合わせて右端を切り詰めると、直近の罫線間隔分だけ最新データが見えなくなるため）
         var separators = ComputeTimeSeparators(from, now, SelectedTimeRange);
-        var axisFrom = separators.Count > 0 ? separators[0] : (double)from.Ticks;
-        var axisTo = separators.Count > 0 ? separators[^1] : (double)now.Ticks;
+        var axisFrom = (double)from.Ticks;
+        var axisTo = (double)now.Ticks;
 
         XAxes = new[]
         {
@@ -493,6 +564,13 @@ public partial class MainViewModel : ObservableObject
             else
             {
                 device.LastSeen = e.Timestamp;
+
+                // 起動時に履歴ファイルから復元した直後はDeviceTypeが不明(空)なので、
+                // 実際にBLEで検出できた時点で正しい種別に補完する
+                if (string.IsNullOrEmpty(device.DeviceType))
+                {
+                    device.DeviceType = BluetoothLEManager.DeviceTypeName(e.DeviceTypeByte);
+                }
             }
 
             device.LastTemperature = e.Temperature;

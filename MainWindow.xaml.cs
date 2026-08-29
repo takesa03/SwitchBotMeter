@@ -211,6 +211,11 @@ public partial class MainWindow : Window
         viewModel.RefreshGraphSeries();
     }
 
+    private void GraphPauseButton_Click(object sender, RoutedEventArgs e)
+    {
+        viewModel.IsGraphPaused = !viewModel.IsGraphPaused;
+    }
+
     private void TimeRangeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         // ComboBox の SelectedIndex="0" は InitializeComponent 中（viewModel生成前）に

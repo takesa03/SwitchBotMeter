@@ -168,6 +168,9 @@
                     <ComboBoxItem Content="半年" Tag="SixMonths"/>
                     <ComboBoxItem Content="1年" Tag="OneYear"/>
                 </ComboBox>
+                <Button Name="GraphPauseButton" DockPanel.Dock="Right" Width="90" Margin="8,0,0,0"
+                       Content="{Binding IsGraphPaused, Converter={StaticResource BoolToTextConverter}, ConverterParameter='再開;一時停止'}"
+                       Click="GraphPauseButton_Click"/>
                 <TextBlock Text="グラフ表示" FontSize="14" FontWeight="Bold"
                           Foreground="{StaticResource TextSecondaryBrush}"/>
             </DockPanel>

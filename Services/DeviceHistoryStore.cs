@@ -20,6 +20,22 @@ public class DeviceHistoryStore
 
     private string GetFilePath(ulong address) => Path.Combine(directory, $"{address:X}.csv");
 
+    // 起動直後（スキャン開始前）にも過去データを表示できるよう、
+    // 履歴ファイルが存在する既知デバイスのアドレス一覧を返す
+    public List<ulong> GetKnownAddresses()
+    {
+        var result = new List<ulong>();
+        foreach (var path in Directory.GetFiles(directory, "*.csv"))
+        {
+            var name = Path.GetFileNameWithoutExtension(path);
+            if (ulong.TryParse(name, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var address))
+            {
+                result.Add(address);
+            }
+        }
+        return result;
+    }
+
     public List<TemperatureHumidityRecord> Load(ulong address, string deviceType)
     {
         var list = new List<TemperatureHumidityRecord>();
@@ -49,7 +65,9 @@ public class DeviceHistoryStore
 
     public void Append(ulong address, TemperatureHumidityRecord record)
     {
-        var line = $"{record.Timestamp:O},{record.Temperature.ToString(CultureInfo.InvariantCulture)},{record.Humidity}";
+        // 秒未満とタイムゾーンオフセットは記録しない（日本標準時前提）
+        var timestamp = record.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        var line = $"{timestamp},{record.Temperature.ToString(CultureInfo.InvariantCulture)},{record.Humidity}";
         File.AppendAllText(GetFilePath(address), line + Environment.NewLine);
     }
 }
