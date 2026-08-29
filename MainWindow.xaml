@@ -52,6 +52,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="デバイス情報" FontSize="12" FontWeight="Bold"
@@ -141,6 +142,23 @@
                                Content="{Binding IsMonitoringActive, Converter={StaticResource BoolToTextConverter}, ConverterParameter='監視停止;監視開始'}"/>
                     </StackPanel>
                 </GroupBox>
+
+                <GroupBox Grid.Row="3" Header="デバイスデータ保存先" Margin="10,0,10,10" Padding="8">
+                    <StackPanel>
+                        <TextBlock Text="別名・グラフ表示色・履歴CSVをまとめて保存するフォルダ" FontSize="9"
+                                  Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Name="DeviceDataDirectoryBox" Height="20" FontSize="9"
+                                    IsReadOnly="True" Text="{Binding DeviceDataDirectory, Mode=OneWay}"/>
+                            <Button Grid.Column="1" Content="..." Width="24" Height="20" Margin="4,0,0,0"
+                                   Padding="0" FontSize="9" Click="BrowseDeviceDataFolderButton_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
             </Grid>
         </Grid>
 
@@ -148,6 +166,7 @@
         <Grid Grid.Column="1" Name="CenterGrid" Background="{StaticResource BackgroundBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Name="DebugLogRow" Height="200"/>
@@ -175,19 +194,66 @@
                           Foreground="{StaticResource TextSecondaryBrush}"/>
             </DockPanel>
 
-            <lvc:CartesianChart Grid.Row="1" Margin="10" Background="{StaticResource PanelBrush}"
-                               Series="{Binding Series}" XAxes="{Binding XAxes}" YAxes="{Binding YAxes}"
-                               AnimationsSpeed="{Binding GraphAnimationsSpeed}"
-                               LegendTextPaint="{Binding LegendTextPaint}"/>
+            <!-- 温度グラフ -->
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="10,0,10,0">
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <TextBlock Text="下限:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                  Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Width="50" VerticalContentAlignment="Center"
+                                Text="{Binding TemperatureAxisMin, UpdateSourceTrigger=LostFocus}"/>
+                        <TextBlock Text="上限:" VerticalAlignment="Center" Margin="10,0,4,0"
+                                  Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Width="50" VerticalContentAlignment="Center"
+                                Text="{Binding TemperatureAxisMax, UpdateSourceTrigger=LostFocus}"/>
+                    </StackPanel>
+                    <TextBlock Text="温度" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </DockPanel>
+                <lvc:CartesianChart Grid.Row="1" Margin="10,0,10,5" Background="{StaticResource PanelBrush}"
+                                   Series="{Binding TemperatureSeries}" XAxes="{Binding TemperatureXAxes}"
+                                   YAxes="{Binding TemperatureYAxes}"
+                                   AnimationsSpeed="{Binding GraphAnimationsSpeed}"
+                                   LegendTextPaint="{Binding LegendTextPaint}"/>
+            </Grid>
+
+            <!-- 湿度グラフ -->
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="10,5,10,0">
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <TextBlock Text="下限:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                  Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Width="50" VerticalContentAlignment="Center"
+                                Text="{Binding HumidityAxisMin, UpdateSourceTrigger=LostFocus}"/>
+                        <TextBlock Text="上限:" VerticalAlignment="Center" Margin="10,0,4,0"
+                                  Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Width="50" VerticalContentAlignment="Center"
+                                Text="{Binding HumidityAxisMax, UpdateSourceTrigger=LostFocus}"/>
+                    </StackPanel>
+                    <TextBlock Text="湿度" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </DockPanel>
+                <lvc:CartesianChart Grid.Row="1" Margin="10,0,10,5" Background="{StaticResource PanelBrush}"
+                                   Series="{Binding HumiditySeries}" XAxes="{Binding HumidityXAxes}"
+                                   YAxes="{Binding HumidityYAxes}"
+                                   AnimationsSpeed="{Binding GraphAnimationsSpeed}"
+                                   LegendTextPaint="{Binding LegendTextPaint}"/>
+            </Grid>
 
             <!-- 常時表示の折りたたみ切り替えバー -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,10,10,0" HorizontalAlignment="Left">
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="10,10,10,0" HorizontalAlignment="Left">
                 <Button Name="ToggleLogButton" Content="▼ スキャン受信状況" Padding="6,2" FontSize="10"
                        Click="ToggleLogButton_Click"/>
             </StackPanel>
 
             <!-- 折りたたみ対象: ログ本体 -->
-            <Grid Grid.Row="3" Name="DebugLogPanel" Margin="10,5,10,10">
+            <Grid Grid.Row="4" Name="DebugLogPanel" Margin="10,5,10,10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>

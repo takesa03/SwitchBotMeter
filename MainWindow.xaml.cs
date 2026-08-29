@@ -167,6 +167,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void BrowseDeviceDataFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog();
+
+            if (!string.IsNullOrWhiteSpace(viewModel.DeviceDataDirectory) && System.IO.Directory.Exists(viewModel.DeviceDataDirectory))
+            {
+                dialog.InitialDirectory = viewModel.DeviceDataDirectory;
+            }
+
+            if (dialog.ShowDialog(this) == true)
+            {
+                viewModel.SetDeviceDataDirectory(dialog.FolderName);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"フォルダ選択でエラーが発生しました:\n{ex.GetType().Name} - {ex.Message}", "SwitchBotMeter");
+        }
+    }
+
     private void AliasTextBox_LostFocus(object sender, RoutedEventArgs e)
     {
         viewModel.SaveAliasForSelectedDevice();

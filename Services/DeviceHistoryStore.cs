@@ -12,11 +12,13 @@ public class DeviceHistoryStore
 {
     private readonly string directory;
 
-    public DeviceHistoryStore()
+    public DeviceHistoryStore(string baseDirectory)
     {
-        directory = Path.Combine(AppPaths.SettingsDirectory, "history");
+        directory = Path.Combine(baseDirectory, "history");
         Directory.CreateDirectory(directory);
     }
+
+    public string HistoryDirectory => directory;
 
     private string GetFilePath(ulong address) => Path.Combine(directory, $"{address:X}.csv");
 

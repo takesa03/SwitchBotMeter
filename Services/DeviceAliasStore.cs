@@ -10,9 +10,9 @@ public class DeviceAliasStore
     private readonly string filePath;
     private Dictionary<ulong, string> aliases = new();
 
-    public DeviceAliasStore()
+    public DeviceAliasStore(string baseDirectory)
     {
-        filePath = Path.Combine(AppPaths.SettingsDirectory, "device_aliases.json");
+        filePath = Path.Combine(baseDirectory, "device_aliases.json");
         Load();
     }
 

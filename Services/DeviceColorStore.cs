@@ -11,9 +11,9 @@ public class DeviceColorStore
     private readonly string filePath;
     private Dictionary<ulong, int> colors = new();
 
-    public DeviceColorStore()
+    public DeviceColorStore(string baseDirectory)
     {
-        filePath = Path.Combine(AppPaths.SettingsDirectory, "device_colors.json");
+        filePath = Path.Combine(baseDirectory, "device_colors.json");
         Load();
     }
 

@@ -11,7 +11,6 @@ using LiveChartsCore;
 using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
-using LiveChartsCore.SkiaSharpView.Painting.Effects;
 using SkiaSharp;
 using SwitchBotMeter.Models;
 using SwitchBotMeter.Services;
@@ -21,10 +20,18 @@ namespace SwitchBotMeter.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly BluetoothLEManager bluetoothManager = new();
-    private readonly DeviceAliasStore aliasStore = new();
     private readonly MonitorSettingsStore monitorSettingsStore = new();
-    private readonly DeviceHistoryStore historyStore = new();
-    private readonly DeviceColorStore colorStore = new();
+    private readonly GraphAxisSettingsStore graphAxisSettingsStore = new();
+    private readonly DeviceDataLocationStore deviceDataLocationStore = new();
+
+    // 別名・グラフ表示色・履歴CSVは1つのフォルダにまとめて保存し、
+    // ユーザーが任意の場所（bin/objの削除等に巻き込まれない場所）に変更できるようにする
+    private DeviceAliasStore aliasStore = null!;
+    private DeviceColorStore colorStore = null!;
+    private DeviceHistoryStore historyStore = null!;
+
+    [ObservableProperty]
+    private string deviceDataDirectory = "";
 
     // 間引き用: デバイスごとに直近1分以内のデータは記録しない
     private static readonly TimeSpan HistoryMinInterval = TimeSpan.FromMinutes(1);
@@ -44,13 +51,34 @@ public partial class MainViewModel : ObservableObject
     private GraphTimeRange selectedTimeRange = GraphTimeRange.ThirtyMinutes;
 
     [ObservableProperty]
-    private ISeries[] series = Array.Empty<ISeries>();
+    private ISeries[] temperatureSeries = Array.Empty<ISeries>();
 
     [ObservableProperty]
-    private Axis[] xAxes = Array.Empty<Axis>();
+    private Axis[] temperatureXAxes = Array.Empty<Axis>();
 
     [ObservableProperty]
-    private Axis[] yAxes = Array.Empty<Axis>();
+    private Axis[] temperatureYAxes = Array.Empty<Axis>();
+
+    [ObservableProperty]
+    private ISeries[] humiditySeries = Array.Empty<ISeries>();
+
+    [ObservableProperty]
+    private Axis[] humidityXAxes = Array.Empty<Axis>();
+
+    [ObservableProperty]
+    private Axis[] humidityYAxes = Array.Empty<Axis>();
+
+    [ObservableProperty]
+    private double temperatureAxisMin;
+
+    [ObservableProperty]
+    private double temperatureAxisMax;
+
+    [ObservableProperty]
+    private double humidityAxisMin;
+
+    [ObservableProperty]
+    private double humidityAxisMax;
 
     [ObservableProperty]
     private TimeSpan graphAnimationsSpeed = TimeSpan.FromMilliseconds(300);
@@ -115,6 +143,15 @@ public partial class MainViewModel : ObservableObject
         outputFilePath = monitorSettings.OutputFilePath;
         monitoredDeviceAddress = monitorSettings.MonitoredDeviceAddress;
 
+        var axisSettings = graphAxisSettingsStore.Load();
+        temperatureAxisMin = axisSettings.TemperatureMin;
+        temperatureAxisMax = axisSettings.TemperatureMax;
+        humidityAxisMin = axisSettings.HumidityMin;
+        humidityAxisMax = axisSettings.HumidityMax;
+
+        deviceDataDirectory = deviceDataLocationStore.Load();
+        InitializeDeviceStores(deviceDataDirectory);
+
         // スキャン開始前（起動直後）でも過去データを表示できるよう、
         // 履歴ファイルが残っている既知デバイスを先に復元しておく
         LoadKnownDevicesFromHistory();
@@ -131,6 +168,57 @@ public partial class MainViewModel : ObservableObject
             }
         };
         graphRefreshTimer.Start();
+    }
+
+    private void InitializeDeviceStores(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        aliasStore = new DeviceAliasStore(directory);
+        colorStore = new DeviceColorStore(directory);
+        historyStore = new DeviceHistoryStore(directory);
+    }
+
+    // 別名・グラフ表示色・履歴CSVの保存先フォルダを変更する。
+    // 既存データは新しい場所へコピーし（元データは残す）、以後の読み書きは新しい場所を使う
+    public void SetDeviceDataDirectory(string newDirectory)
+    {
+        try
+        {
+            var oldDirectory = DeviceDataDirectory;
+            Directory.CreateDirectory(newDirectory);
+
+            CopyFileIfMissing(Path.Combine(oldDirectory, "device_aliases.json"), Path.Combine(newDirectory, "device_aliases.json"));
+            CopyFileIfMissing(Path.Combine(oldDirectory, "device_colors.json"), Path.Combine(newDirectory, "device_colors.json"));
+
+            var oldHistoryDir = Path.Combine(oldDirectory, "history");
+            var newHistoryDir = Path.Combine(newDirectory, "history");
+            Directory.CreateDirectory(newHistoryDir);
+            if (Directory.Exists(oldHistoryDir))
+            {
+                foreach (var file in Directory.GetFiles(oldHistoryDir, "*.csv"))
+                {
+                    CopyFileIfMissing(file, Path.Combine(newHistoryDir, Path.GetFileName(file)));
+                }
+            }
+
+            InitializeDeviceStores(newDirectory);
+            DeviceDataDirectory = newDirectory;
+            deviceDataLocationStore.Save(newDirectory);
+            StatusMessage = $"デバイスデータの保存先を変更しました: {newDirectory}";
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"デバイスデータ保存先の変更に失敗: {ex.GetType().Name} - {ex.Message}");
+            StatusMessage = "デバイスデータ保存先の変更に失敗しました";
+        }
+    }
+
+    private static void CopyFileIfMissing(string source, string destination)
+    {
+        if (File.Exists(source) && !File.Exists(destination))
+        {
+            File.Copy(source, destination);
+        }
     }
 
     // 履歴ファイルが存在する既知デバイスをデバイス一覧に復元する（DeviceTypeはまだ不明のため空文字。
@@ -174,6 +262,23 @@ public partial class MainViewModel : ObservableObject
     }
 
     partial void OnSelectedTimeRangeChanged(GraphTimeRange value) => RefreshGraphSeries();
+
+    partial void OnTemperatureAxisMinChanged(double value) => SaveGraphAxisSettingsAndRefresh();
+    partial void OnTemperatureAxisMaxChanged(double value) => SaveGraphAxisSettingsAndRefresh();
+    partial void OnHumidityAxisMinChanged(double value) => SaveGraphAxisSettingsAndRefresh();
+    partial void OnHumidityAxisMaxChanged(double value) => SaveGraphAxisSettingsAndRefresh();
+
+    private void SaveGraphAxisSettingsAndRefresh()
+    {
+        graphAxisSettingsStore.Save(new GraphAxisSettings
+        {
+            TemperatureMin = TemperatureAxisMin,
+            TemperatureMax = TemperatureAxisMax,
+            HumidityMin = HumidityAxisMin,
+            HumidityMax = HumidityAxisMax
+        });
+        RefreshGraphSeries();
+    }
 
     // 一時停止中は表示をそのまま維持し、記録自体は継続する。
     // 再開時に最新状態へ一気に更新する
@@ -264,7 +369,8 @@ public partial class MainViewModel : ObservableObject
             _ => now.AddHours(-1)
         };
 
-        var newSeries = new List<ISeries>();
+        var newTemperatureSeries = new List<ISeries>();
+        var newHumiditySeries = new List<ISeries>();
 
         foreach (var device in Devices.Where(d => d.ShowOnGraph))
         {
@@ -284,35 +390,35 @@ public partial class MainViewModel : ObservableObject
 
             var color = DevicePalette[device.PaletteIndex % DevicePalette.Length].Sk;
 
-            // マーカーは点が密集すると潰れて見づらいため表示しない（線のみ）
-            const double geometrySize = 0;
+            // データ位置が分かる程度の控えめな小さいマーカー（線色より少し透明にして目立たせすぎない）
+            const double geometrySize = 4;
+            var markerColor = color.WithAlpha(160);
 
-            newSeries.Add(new LineSeries<DateTimePoint>
+            newTemperatureSeries.Add(new LineSeries<DateTimePoint>
             {
-                Name = $"{device.DisplayName} 温度",
+                Name = device.DisplayName,
                 Values = points.Select(p => new DateTimePoint(p.Timestamp, p.Temperature)).ToArray(),
                 Stroke = new SolidColorPaint(color, 2),
                 Fill = null,
                 GeometrySize = geometrySize,
-                GeometryFill = new SolidColorPaint(color),
-                GeometryStroke = null,
-                ScalesYAt = 0
+                GeometryFill = new SolidColorPaint(markerColor),
+                GeometryStroke = null
             });
 
-            newSeries.Add(new LineSeries<DateTimePoint>
+            newHumiditySeries.Add(new LineSeries<DateTimePoint>
             {
-                Name = $"{device.DisplayName} 湿度",
+                Name = device.DisplayName,
                 Values = points.Select(p => new DateTimePoint(p.Timestamp, p.Humidity)).ToArray(),
-                Stroke = new SolidColorPaint(color, 2) { PathEffect = new DashEffect(new float[] { 6, 6 }) },
+                Stroke = new SolidColorPaint(color, 2),
                 Fill = null,
                 GeometrySize = geometrySize,
-                GeometryFill = new SolidColorPaint(color),
-                GeometryStroke = null,
-                ScalesYAt = 1
+                GeometryFill = new SolidColorPaint(markerColor),
+                GeometryStroke = null
             });
         }
 
-        Series = newSeries.ToArray();
+        TemperatureSeries = newTemperatureSeries.ToArray();
+        HumiditySeries = newHumiditySeries.ToArray();
 
         var longRange = SelectedTimeRange is GraphTimeRange.OneDay or GraphTimeRange.OneWeek
             or GraphTimeRange.OneMonth or GraphTimeRange.SixMonths or GraphTimeRange.OneYear;
@@ -323,21 +429,21 @@ public partial class MainViewModel : ObservableObject
         var axisFrom = (double)from.Ticks;
         var axisTo = (double)now.Ticks;
 
-        XAxes = new[]
+        Axis MakeTimeAxis() => new()
         {
-            new Axis
-            {
-                Labeler = value => new DateTime((long)value).ToString(longRange ? "yyyy/MM/dd" : "MM/dd HH:mm"),
-                LabelsRotation = 15,
-                // データの有無に関わらず、選択したレンジの幅で表示範囲を固定する。
-                // 罫線は0時0分を起点としたキリの良い時刻に揃える
-                MinLimit = axisFrom,
-                MaxLimit = axisTo,
-                CustomSeparators = separators,
-                LabelsPaint = NewAxisLabelPaint(),
-                SeparatorsPaint = NewAxisSeparatorPaint()
-            }
+            Labeler = value => new DateTime((long)value).ToString(longRange ? "yyyy/MM/dd" : "MM/dd HH:mm"),
+            LabelsRotation = 15,
+            // データの有無に関わらず、選択したレンジの幅で表示範囲を固定する。
+            // 罫線は0時0分を起点としたキリの良い時刻に揃える
+            MinLimit = axisFrom,
+            MaxLimit = axisTo,
+            CustomSeparators = separators,
+            LabelsPaint = NewAxisLabelPaint(),
+            SeparatorsPaint = NewAxisSeparatorPaint()
         };
+
+        TemperatureXAxes = new[] { MakeTimeAxis() };
+        HumidityXAxes = new[] { MakeTimeAxis() };
 
         if (isFirstGraphRender)
         {
@@ -348,32 +454,35 @@ public partial class MainViewModel : ObservableObject
             GraphAnimationsSpeed = TimeSpan.Zero;
         }
 
-        YAxes = new[]
+        // 上限・下限はUIで設定可能（設定値は永続化される）。上下逆転を避けるため下限側を若干制限する
+        var temperatureMin = TemperatureAxisMin;
+        var temperatureMax = Math.Max(TemperatureAxisMax, temperatureMin + 1);
+        var humidityMin = HumidityAxisMin;
+        var humidityMax = Math.Max(HumidityAxisMax, humidityMin + 1);
+
+        TemperatureYAxes = new[]
         {
             new Axis
             {
-                // 0〜40を5刻み = 8分割。湿度側と目盛りの本数を揃えてグリッド線を一致させる
                 Name = "温度 (℃)",
                 NamePaint = NewAxisLabelPaint(),
                 LabelsPaint = NewAxisLabelPaint(),
                 SeparatorsPaint = NewAxisSeparatorPaint(),
-                MinLimit = 0,
-                MaxLimit = 40,
-                MinStep = 5,
-                ForceStepToMin = true
-            },
+                MinLimit = temperatureMin,
+                MaxLimit = temperatureMax
+            }
+        };
+
+        HumidityYAxes = new[]
+        {
             new Axis
             {
-                // 10〜90を10刻み = 8分割（温度と同じ本数にして横線を揃える）
                 Name = "湿度 (%)",
-                Position = LiveChartsCore.Measure.AxisPosition.End,
                 NamePaint = NewAxisLabelPaint(),
                 LabelsPaint = NewAxisLabelPaint(),
                 SeparatorsPaint = NewAxisSeparatorPaint(),
-                MinLimit = 10,
-                MaxLimit = 90,
-                MinStep = 10,
-                ForceStepToMin = true
+                MinLimit = humidityMin,
+                MaxLimit = humidityMax
             }
         };
     }
