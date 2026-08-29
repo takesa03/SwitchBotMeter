@@ -64,13 +64,30 @@
                              FontSize="13" Margin="0,0,0,8" LostFocus="AliasTextBox_LostFocus"/>
 
                     <TextBlock Text="グラフ表示色:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,0,8">
-                        <Button Width="22" Height="22" Margin="0,0,4,0" Background="#1E90FF" Tag="0" Click="GraphColorButton_Click"/>
-                        <Button Width="22" Height="22" Margin="0,0,4,0" Background="#FF4500" Tag="1" Click="GraphColorButton_Click"/>
-                        <Button Width="22" Height="22" Margin="0,0,4,0" Background="#32CD32" Tag="2" Click="GraphColorButton_Click"/>
-                        <Button Width="22" Height="22" Margin="0,0,4,0" Background="#FFD700" Tag="3" Click="GraphColorButton_Click"/>
-                        <Button Width="22" Height="22" Margin="0,0,4,0" Background="#9370DB" Tag="4" Click="GraphColorButton_Click"/>
-                        <Button Width="22" Height="22" Margin="0,0,0,0" Background="#00FFFF" Tag="5" Click="GraphColorButton_Click"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,8" HorizontalAlignment="Left">
+                        <Button Name="CurrentColorButton" Width="26" Height="26" Padding="0"
+                               Background="{Binding SelectedDevice.GraphColorBrush}"
+                               Click="CurrentColorButton_Click"/>
+                        <Popup Name="ColorPalettePopup" PlacementTarget="{Binding ElementName=CurrentColorButton}"
+                              Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                            <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                   BorderThickness="1" Padding="6">
+                                <ItemsControl ItemsSource="{Binding DevicePaletteSwatches}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Width="112"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Width="24" Height="24" Margin="2" Padding="0"
+                                                   Background="{Binding Brush}" Tag="{Binding Index}"
+                                                   Click="PaletteColorButton_Click"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </Popup>
                     </StackPanel>
 
                     <TextBlock Text="アドレス:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>

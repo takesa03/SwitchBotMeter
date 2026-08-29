@@ -30,7 +30,17 @@ public partial class MainWindow : Window
 
             // グラフはウィンドウが実際のサイズを持ってから初期化する（コンストラクタ内で
             // 呼ぶとチャートのプロット領域がゼロサイズのまま初期化され、以後崩れるため）
-            Loaded += (_, _) => viewModel.RefreshGraphSeries();
+            Loaded += (_, _) =>
+            {
+                viewModel.RefreshGraphSeries();
+
+                // 起動時に自動でスキャンを開始し、監視デバイスが設定済みならバックグラウンド監視も自動開始する
+                viewModel.StartScanning();
+                if (viewModel.MonitoredDeviceAddress.HasValue)
+                {
+                    viewModel.ToggleMonitoring();
+                }
+            };
         }
         catch (Exception ex)
         {
@@ -194,13 +204,21 @@ public partial class MainWindow : Window
         viewModel.SaveAliasForSelectedDevice();
     }
 
-    private void GraphColorButton_Click(object sender, RoutedEventArgs e)
+    private void CurrentColorButton_Click(object sender, RoutedEventArgs e)
     {
         if (viewModel.SelectedDevice == null) return;
-        if (sender is System.Windows.Controls.Button button && button.Tag is string tag && int.TryParse(tag, out var paletteIndex))
+        ColorPalettePopup.IsOpen = !ColorPalettePopup.IsOpen;
+    }
+
+    private void PaletteColorButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (viewModel.SelectedDevice != null &&
+            sender is System.Windows.Controls.Button button && button.Tag is int paletteIndex)
         {
             viewModel.SetDeviceColor(viewModel.SelectedDevice, paletteIndex);
         }
+
+        ColorPalettePopup.IsOpen = false;
     }
 
     private void DebugLogTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)

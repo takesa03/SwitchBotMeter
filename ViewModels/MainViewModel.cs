@@ -86,6 +86,7 @@ public partial class MainViewModel : ObservableObject
     private bool isFirstGraphRender = true;
 
     // グラフの系列色とデバイス一覧の文字色を一致させるため、SkiaSharp用とWPF用を対で管理する
+    // 既に保存されたインデックスとのズレを避けるため、既存6色の並び順は変更せず末尾に追加する
     private static readonly (SKColor Sk, Color Wpf)[] DevicePalette =
     {
         (SKColors.DodgerBlue, Color.FromRgb(0x1E, 0x90, 0xFF)),
@@ -93,8 +94,24 @@ public partial class MainViewModel : ObservableObject
         (SKColors.LimeGreen, Color.FromRgb(0x32, 0xCD, 0x32)),
         (SKColors.Gold, Color.FromRgb(0xFF, 0xD7, 0x00)),
         (SKColors.MediumPurple, Color.FromRgb(0x93, 0x70, 0xDB)),
-        (SKColors.Cyan, Color.FromRgb(0x00, 0xFF, 0xFF))
+        (SKColors.Cyan, Color.FromRgb(0x00, 0xFF, 0xFF)),
+        (SKColors.HotPink, Color.FromRgb(0xFF, 0x69, 0xB4)),
+        (SKColors.Orange, Color.FromRgb(0xFF, 0xA5, 0x00)),
+        (SKColors.SpringGreen, Color.FromRgb(0x00, 0xFF, 0x7F)),
+        (SKColors.Tomato, Color.FromRgb(0xFF, 0x63, 0x47)),
+        (SKColors.LightSkyBlue, Color.FromRgb(0x87, 0xCE, 0xFA)),
+        (SKColors.Violet, Color.FromRgb(0xEE, 0x82, 0xEE)),
+        (SKColors.Khaki, Color.FromRgb(0xF0, 0xE6, 0x8C)),
+        (SKColors.Coral, Color.FromRgb(0xFF, 0x7F, 0x50)),
+        (SKColors.GreenYellow, Color.FromRgb(0xAD, 0xFF, 0x2F)),
+        (SKColors.SteelBlue, Color.FromRgb(0x46, 0x82, 0xB4))
     };
+
+    // グラフ表示色ポップアップに表示するスウォッチ一覧（インデックス付き）
+    // Background(Brush型)にそのままバインドできるよう、ColorではなくBrushで保持する
+    public record PaletteSwatch(int Index, Brush Brush);
+    public IReadOnlyList<PaletteSwatch> DevicePaletteSwatches { get; } =
+        DevicePalette.Select((p, i) => new PaletteSwatch(i, (Brush)new SolidColorBrush(p.Wpf))).ToList();
 
     private int nextPaletteIndex;
 
