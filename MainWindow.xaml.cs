@@ -256,6 +256,22 @@ public partial class MainWindow : Window
         viewModel.IsGraphPaused = !viewModel.IsGraphPaused;
     }
 
+    private void AxisUpButton_Click(object sender, RoutedEventArgs e) => AdjustAxisValue(sender, 1);
+    private void AxisDownButton_Click(object sender, RoutedEventArgs e) => AdjustAxisValue(sender, -1);
+
+    private void AdjustAxisValue(object sender, double delta)
+    {
+        if (sender is not FrameworkElement el || el.Tag is not string propertyName) return;
+
+        switch (propertyName)
+        {
+            case "TemperatureAxisMin": viewModel.TemperatureAxisMin += delta; break;
+            case "TemperatureAxisMax": viewModel.TemperatureAxisMax += delta; break;
+            case "HumidityAxisMin": viewModel.HumidityAxisMin += delta; break;
+            case "HumidityAxisMax": viewModel.HumidityAxisMax += delta; break;
+        }
+    }
+
     private void TimeRangeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         // ComboBox の SelectedIndex="0" は InitializeComponent 中（viewModel生成前）に

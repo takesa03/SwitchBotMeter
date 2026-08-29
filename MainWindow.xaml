@@ -223,10 +223,18 @@
                                   Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBox Width="50" VerticalContentAlignment="Center"
                                 Text="{Binding TemperatureAxisMin, UpdateSourceTrigger=LostFocus}"/>
+                        <StackPanel Orientation="Vertical" Margin="1,0,0,0" VerticalAlignment="Center">
+                            <RepeatButton Content="▲" Tag="TemperatureAxisMin" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisUpButton_Click"/>
+                            <RepeatButton Content="▼" Tag="TemperatureAxisMin" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisDownButton_Click"/>
+                        </StackPanel>
                         <TextBlock Text="上限:" VerticalAlignment="Center" Margin="10,0,4,0"
                                   Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBox Width="50" VerticalContentAlignment="Center"
                                 Text="{Binding TemperatureAxisMax, UpdateSourceTrigger=LostFocus}"/>
+                        <StackPanel Orientation="Vertical" Margin="1,0,0,0" VerticalAlignment="Center">
+                            <RepeatButton Content="▲" Tag="TemperatureAxisMax" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisUpButton_Click"/>
+                            <RepeatButton Content="▼" Tag="TemperatureAxisMax" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisDownButton_Click"/>
+                        </StackPanel>
                     </StackPanel>
                     <TextBlock Text="温度" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                 </DockPanel>
@@ -249,10 +257,18 @@
                                   Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBox Width="50" VerticalContentAlignment="Center"
                                 Text="{Binding HumidityAxisMin, UpdateSourceTrigger=LostFocus}"/>
+                        <StackPanel Orientation="Vertical" Margin="1,0,0,0" VerticalAlignment="Center">
+                            <RepeatButton Content="▲" Tag="HumidityAxisMin" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisUpButton_Click"/>
+                            <RepeatButton Content="▼" Tag="HumidityAxisMin" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisDownButton_Click"/>
+                        </StackPanel>
                         <TextBlock Text="上限:" VerticalAlignment="Center" Margin="10,0,4,0"
                                   Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBox Width="50" VerticalContentAlignment="Center"
                                 Text="{Binding HumidityAxisMax, UpdateSourceTrigger=LostFocus}"/>
+                        <StackPanel Orientation="Vertical" Margin="1,0,0,0" VerticalAlignment="Center">
+                            <RepeatButton Content="▲" Tag="HumidityAxisMax" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisUpButton_Click"/>
+                            <RepeatButton Content="▼" Tag="HumidityAxisMax" Width="20" Height="17" FontSize="9" Foreground="Black" FontWeight="Bold" Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Click="AxisDownButton_Click"/>
+                        </StackPanel>
                     </StackPanel>
                     <TextBlock Text="湿度" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                 </DockPanel>
