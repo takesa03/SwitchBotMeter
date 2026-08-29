@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>SwitchBotMeter.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="SwitchBotMeter.ico" />
+  </ItemGroup>
+
+  <!-- ビルドのたびにリビジョン番号を自動加算し、Properties/AppVersion.cs に書き出す -->
+  <Target Name="IncrementRevisionAndGenerateVersion" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <RevisionFilePath>$(MSBuildProjectDirectory)\revision.txt</RevisionFilePath>
+      <AppVersionFilePath>$(MSBuildProjectDirectory)\Properties\AppVersion.cs</AppVersionFilePath>
+    </PropertyGroup>
+
+    <ReadLinesFromFile File="$(RevisionFilePath)" Condition="Exists('$(RevisionFilePath)')">
+      <Output TaskParameter="Lines" ItemName="_RevisionLine" />
+    </ReadLinesFromFile>
+
+    <PropertyGroup>
+      <CurrentRevision>@(_RevisionLine)</CurrentRevision>
+      <CurrentRevision Condition="'$(CurrentRevision)' == ''">0</CurrentRevision>
+      <NextRevision>$([MSBuild]::Add($(CurrentRevision), 1))</NextRevision>
+      <AppVersionString>1.0.$(NextRevision)</AppVersionString>
+      <VersionFileContent>namespace SwitchBotMeter%3B internal static class AppVersion { public const string Version = "$(AppVersionString)"%3B }</VersionFileContent>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(RevisionFilePath)" Lines="$(NextRevision)" Overwrite="true" />
+    <WriteLinesToFile File="$(AppVersionFilePath)" Lines="$(VersionFileContent)" Overwrite="true" />
+  </Target>
+
+</Project>

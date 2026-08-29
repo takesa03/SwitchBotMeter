@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SwitchBotMeter": {
+      "commandName": "Project",
+      "commandLineArgs": "--device D43533341881 --output ./test.txt"
+    }
+  }
+}
