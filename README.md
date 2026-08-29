@@ -83,3 +83,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 - https://github.com/OpenWonderLabs/python-host/wiki/Meter-BLE-open-API
 - https://github.com/sblibs/pySwitchbot
 - https://qiita.com/warpzone/items/11ec9bef21f5b965bce3
+
+## License
+
+MIT License. 詳細は [LICENSE](LICENSE) を参照してください。
