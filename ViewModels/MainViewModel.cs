@@ -437,7 +437,8 @@ public partial class MainViewModel : ObservableObject
         TemperatureSeries = newTemperatureSeries.ToArray();
         HumiditySeries = newHumiditySeries.ToArray();
 
-        var longRange = SelectedTimeRange is GraphTimeRange.OneDay or GraphTimeRange.OneWeek
+        // 1日レンジは日付が変わらず時刻の方が有用なため、日付のみ表示にはしない
+        var dateOnlyRange = SelectedTimeRange is GraphTimeRange.OneWeek
             or GraphTimeRange.OneMonth or GraphTimeRange.SixMonths or GraphTimeRange.OneYear;
 
         // 罫線位置は綺麗な時刻に揃えるが、表示範囲自体は常に選択レンジ通り「現在時刻」まで伸ばす
@@ -452,7 +453,7 @@ public partial class MainViewModel : ObservableObject
             Labeler = value =>
             {
                 var dt = new DateTime((long)value);
-                return longRange ? $"{dt:yyyy}\n{dt:MM/dd}" : $"{dt:MM/dd}\n{dt:HH:mm}";
+                return dateOnlyRange ? $"{dt:yyyy}\n{dt:MM/dd}" : $"{dt:MM/dd}\n{dt:HH:mm}";
             },
             LabelsRotation = 0,
             // データの有無に関わらず、選択したレンジの幅で表示範囲を固定する。
