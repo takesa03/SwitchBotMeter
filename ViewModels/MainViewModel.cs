@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -623,7 +624,7 @@ public partial class MainViewModel : ObservableObject
         {
             bluetoothManager.Start();
             IsScanning = true;
-            StatusMessage = "スキャン中...";
+            StatusMessage = "スキャン中(間欠)...";
         }
         catch (Exception ex)
         {
@@ -646,6 +647,14 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = "スキャン停止";
         }
+    }
+
+    // Watcherの再生成では復旧しない場合に、ユーザーが手動でBluetooth無線を再起動できるようにする
+    public async Task RestartBluetoothRadioAsync()
+    {
+        StatusMessage = "Bluetooth無線を再起動しています...";
+        await bluetoothManager.RestartBluetoothRadioAsync();
+        StatusMessage = "Bluetooth無線の再起動処理が完了しました";
     }
 
     private void OnLogMessage(object? sender, string message)

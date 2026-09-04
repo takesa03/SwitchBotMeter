@@ -24,6 +24,8 @@
                 <TextBlock Text="デバイス一覧" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
                 <Button Name="ScanButton" Padding="5" Click="ScanButton_Click"
                        Content="{Binding IsScanning, Converter={StaticResource BoolToTextConverter}, ConverterParameter='スキャン停止;スキャン開始'}"/>
+                <Button Name="RestartBluetoothButton" Padding="3" Margin="0,4,0,0" FontSize="10"
+                       Content="Bluetooth無線を再起動" Click="RestartBluetoothButton_Click"/>
             </StackPanel>
 
             <ListBox Grid.Row="1" Name="DeviceListBox" Margin="10"

@@ -135,6 +135,17 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void RestartBluetoothButton_Click(object sender, RoutedEventArgs e)
+    {
+        var result = MessageBox.Show(
+            "Bluetooth無線を再起動します。ペアリング済みの他のBluetooth機器（マウス・キーボード・スマホ等）も一時的に切断されます。続行しますか？",
+            "SwitchBotMeter", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        await viewModel.RestartBluetoothRadioAsync();
+    }
+
     private void MonitorStartButton_Click(object sender, RoutedEventArgs e)
     {
         viewModel.ToggleMonitoring();
