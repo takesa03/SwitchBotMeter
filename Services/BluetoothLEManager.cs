@@ -125,12 +125,16 @@ public class BluetoothLEManager
         if (dutyCycleScanIsOn)
         {
             dutyCycleScanIsOn = false;
+            // watcher.Stoppedイベントは非同期でOS/ドライバ依存のため、
+            // OFF区間に入ったこと自体はここで同期的にログする
+            Log($"間欠スキャン: OFF区間に入ります（{ScanOffDuration.TotalSeconds:F0}秒間休止）");
             try { watcher.Stop(); } catch { /* 既に停止している場合は無視 */ }
             dutyCycleTimer.Change(ScanOffDuration, Timeout.InfiniteTimeSpan);
         }
         else
         {
             dutyCycleScanIsOn = true;
+            Log($"間欠スキャン: ON区間を開始します（{ScanOnDuration.TotalSeconds:F0}秒間受信）");
             try { StartWatcherInternal(); } catch { /* 例外はログ済み。次のサイクルで再試行する */ }
             dutyCycleTimer.Change(ScanOnDuration, Timeout.InfiniteTimeSpan);
         }
@@ -239,7 +243,9 @@ public class BluetoothLEManager
 
     private void Watcher_Stopped(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementWatcherStoppedEventArgs args)
     {
-        Log($"Watcher が停止しました。Error={args.Error}");
+        // Errorは異常終了時の原因を示すもので、正常停止時はSuccessになる（エラーが起きた訳ではない）。
+        // 紛らわしいため、他のログ行と同様にStatusも併記する
+        Log($"Watcher が停止しました (Status={sender.Status}, Error={args.Error})");
     }
 
     public static string DeviceTypeName(byte deviceType) => deviceType switch
