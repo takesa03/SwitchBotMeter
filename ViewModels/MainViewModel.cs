@@ -167,8 +167,7 @@ public partial class MainViewModel : ObservableObject
         humidityAxisMin = axisSettings.HumidityMin;
         humidityAxisMax = axisSettings.HumidityMax;
 
-        deviceDataDirectory = deviceDataLocationStore.Load();
-        InitializeDeviceStores(deviceDataDirectory);
+        deviceDataDirectory = ResolveDeviceDataDirectory(deviceDataLocationStore.Load());
 
         // スキャン開始前（起動直後）でも過去データを表示できるよう、
         // 履歴ファイルが残っている既知デバイスを先に復元しておく
@@ -194,6 +193,49 @@ public partial class MainViewModel : ObservableObject
         aliasStore = new DeviceAliasStore(directory);
         colorStore = new DeviceColorStore(directory);
         historyStore = new DeviceHistoryStore(directory);
+    }
+
+    // 保存されているフォルダが開けない場合（別環境へ移動してドライブ構成が変わった等）に、
+    // 起動時クラッシュではなくフォルダ選択でユーザーに復旧させる。キャンセル時はプログラムを終了する
+    private string ResolveDeviceDataDirectory(string savedDirectory)
+    {
+        var candidate = savedDirectory;
+        while (true)
+        {
+            try
+            {
+                InitializeDeviceStores(candidate);
+                if (candidate != savedDirectory)
+                {
+                    deviceDataLocationStore.Save(candidate);
+                }
+                return candidate;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"デバイスデータの保存先フォルダを開けませんでした:\n{candidate}\n\n" +
+                    "別の環境にプログラムやデータを移動した場合など、パス構成が変わった可能性があります。\n" +
+                    "新しい保存先フォルダを選択してください。\n\n" +
+                    $"({ex.GetType().Name}: {ex.Message})",
+                    "SwitchBotMeter", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                var dialog = new Microsoft.Win32.OpenFolderDialog
+                {
+                    Title = "デバイスデータの保存先フォルダを選択してください"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    candidate = dialog.FolderName;
+                    continue;
+                }
+
+                // キャンセルされた場合はプログラムを終了する
+                Environment.Exit(1);
+                return candidate;
+            }
+        }
     }
 
     // 別名・グラフ表示色・履歴CSVの保存先フォルダを変更する。
